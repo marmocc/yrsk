@@ -63,4 +63,13 @@ impl Terminal {
         self.push_color(false, color);
         self.background = Some(color);
     }
+
+    pub fn push_byte(&mut self, value: u8) {
+        self.buffer.push(value);
+        if self.cursor.is_some() {
+            let old = self.cursor.unwrap();
+            let new = old.add(1, 0);
+            self.cursor = Some(new);
+        }
+    }
 }

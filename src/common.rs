@@ -8,6 +8,13 @@ impl Position {
     pub fn new(x: i32, y: i32) -> Self {
         Self { x, y }
     }
+
+    pub fn add(self, x: i32, y: i32) -> Self {
+        Self {
+            x: self.x + x,
+            y: self.y + y,
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

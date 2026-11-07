@@ -1,6 +1,7 @@
 use crate::common::{Color, Digit3, Position};
 use std::io::Write;
 
+#[derive(Default)]
 pub struct Terminal {
     cursor: Option<Position>,
     foreground: Option<Color>,
@@ -8,14 +9,14 @@ pub struct Terminal {
     buffer: Vec<u8>,
 }
 
+enum Layer {
+    Foreground,
+    Background,
+}
+
 impl Terminal {
     pub fn new() -> Self {
-        Self {
-            cursor: None,
-            foreground: None,
-            background: None,
-            buffer: Vec::new(),
-        }
+        Self::default()
     }
 
     pub fn push_move(&mut self, position: Position) {
@@ -30,13 +31,16 @@ impl Terminal {
         self.cursor = Some(position);
     }
 
-    fn push_color(&mut self, toggle: bool, color: Color) {
+    fn push_color(&mut self, layer: Layer, color: Color) {
         let r_digits = Digit3::new(color.r);
         let g_digits = Digit3::new(color.g);
         let b_digits = Digit3::new(color.b);
 
         self.buffer.extend_from_slice(b"\x1b[");
-        self.buffer.push(if toggle { b'3' } else { b'4' });
+        match layer {
+            Layer::Foreground => self.buffer.push(b'3'),
+            Layer::Background => self.buffer.push(b'4'),
+        }
         self.buffer.extend_from_slice(b"8;2;");
         self.buffer.extend_from_slice(&r_digits.as_bytes());
         self.buffer.push(b';');
@@ -51,7 +55,7 @@ impl Terminal {
             return;
         }
 
-        self.push_color(true, color);
+        self.push_color(Layer::Foreground, color);
         self.foreground = Some(color);
     }
 
@@ -60,16 +64,20 @@ impl Terminal {
             return;
         }
 
-        self.push_color(false, color);
+        self.push_color(Layer::Background, color);
         self.background = Some(color);
     }
 
     pub fn push_byte(&mut self, value: u8) {
         self.buffer.push(value);
-        if self.cursor.is_some() {
-            let old = self.cursor.unwrap();
-            let new = old.add(1, 0);
-            self.cursor = Some(new);
-        }
+        self.cursor = self.cursor.map(|p| p.add(1, 0));
+    }
+
+    pub fn flush(&mut self) -> std::io::Result<()> {
+        let mut out = std::io::stdout().lock();
+        out.write_all(&self.buffer)?;
+        out.flush()?;
+        self.buffer.clear();
+        Ok(())
     }
 }

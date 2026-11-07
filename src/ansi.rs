@@ -9,6 +9,15 @@ pub struct Terminal {
 }
 
 impl Terminal {
+    pub fn new() -> Self {
+        Self {
+            cursor: None,
+            foreground: None,
+            background: None,
+            buffer: Vec::new(),
+        }
+    }
+
     pub fn push_move(&mut self, position: Position) {
         if self.cursor == Some(position) {
             return;

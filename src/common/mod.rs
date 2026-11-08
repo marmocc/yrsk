@@ -39,8 +39,14 @@ impl Add<(i32, i32)> for Position {
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Size {
-    pub width: i32,
-    pub height: i32,
+    pub width: u32,
+    pub height: u32,
+}
+
+impl Size {
+    pub fn new(width: u32, height: u32) -> Self {
+        Self { width, height }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

@@ -97,7 +97,7 @@ impl<'stdout_lock> Terminal<'stdout_lock> {
 
 impl<'stdout_lock> Renderer for Terminal<'stdout_lock> {
     fn present(&mut self) -> std::io::Result<()> {
-        self.output.write(&self.buffer)?;
+        self.output.write_all(&self.buffer)?;
         self.buffer.clear();
         Ok(())
     }

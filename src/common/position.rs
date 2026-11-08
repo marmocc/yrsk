@@ -26,14 +26,6 @@ impl Add for Position {
     }
 }
 
-impl Add<i32> for Position {
-    type Output = Position;
-    #[inline]
-    fn add(self, rhs: i32) -> Self::Output {
-        Position::new(self.x + rhs, self.y + rhs)
-    }
-}
-
 impl Add<(i32, i32)> for Position {
     type Output = Position;
     #[inline]

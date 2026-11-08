@@ -1,5 +1,5 @@
 use crate::common::{color::Color, digit3::Digit3, position::Position};
-use std::io::Write;
+use std::io::{self, Write};
 
 pub struct Writer {
     cursor: Option<Position>,
@@ -25,10 +25,11 @@ impl Writer {
     }
 
     #[inline]
-    pub fn flush<T: Write>(&mut self, out: &mut T) {
-        out.write_all(&self.buffer);
-        out.flush();
+    pub fn flush<T: Write>(&mut self, out: &mut T) -> io::Result<()> {
+        out.write_all(&self.buffer)?;
+        out.flush()?;
         self.clear();
+        Ok(())
     }
 
     #[inline]

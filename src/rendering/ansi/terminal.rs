@@ -39,7 +39,7 @@ impl Terminal {
         terminal.writer.push_cursor_hide();
         terminal.writer.push_alternate_enter();
         terminal.writer.push_clear();
-        terminal.present();
+        terminal.present()?;
 
         Ok(terminal)
     }
@@ -51,7 +51,7 @@ impl Drop for Terminal {
         self.writer.push_reset();
         self.writer.push_cursor_show();
         self.writer.push_alternate_leave();
-        self.present();
+        let _ = self.present();
     }
 }
 
@@ -87,7 +87,8 @@ impl Canvas for Terminal {
 }
 
 impl Renderer for Terminal {
-    fn present(&mut self) {
-        self.writer.flush(&mut self.output);
+    fn present(&mut self) -> io::Result<()> {
+        self.writer.flush(&mut self.output)?;
+        Ok(())
     }
 }

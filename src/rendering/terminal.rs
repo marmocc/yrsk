@@ -140,7 +140,49 @@ mod tests {
         for x in 0..5 {
             t.plot(Position::new(x, 0), Etchel::solid(Color::new(1, 2, 3)));
         }
-        let moves = t.buffer.iter().filter(|&&b| b == b'H').count();
-        assert_eq!(moves, 1);
+        let sequences = t.buffer.iter().filter(|&&b| b == b'\x1b').count();
+        assert_eq!(sequences, 3); // 3 because of first-time Foreground, Background and Move
+    }
+
+    #[test]
+    fn two_push_move_emit_one() {
+        let mut t = Terminal::with_size(Size {
+            width: 10,
+            height: 2,
+        });
+
+        t.push_move(Position::new(4, 0));
+        t.push_move(Position::new(4, 0));
+
+        let sequences = t.buffer.iter().filter(|&&b| b == b'\x1b').count();
+        assert_eq!(sequences, 1);
+    }
+
+    #[test]
+    fn two_push_foreground_emit_one() {
+        let mut t = Terminal::with_size(Size {
+            width: 10,
+            height: 2,
+        });
+
+        t.push_foreground(Color::new(8, 8, 8));
+        t.push_foreground(Color::new(8, 8, 8));
+
+        let sequences = t.buffer.iter().filter(|&&b| b == b'\x1b').count();
+        assert_eq!(sequences, 1);
+    }
+
+    #[test]
+    fn two_push_background_emit_one() {
+        let mut t = Terminal::with_size(Size {
+            width: 10,
+            height: 2,
+        });
+
+        t.push_background(Color::new(8, 8, 8));
+        t.push_background(Color::new(8, 8, 8));
+
+        let sequences = t.buffer.iter().filter(|&&b| b == b'\x1b').count();
+        assert_eq!(sequences, 1);
     }
 }

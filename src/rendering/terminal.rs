@@ -92,7 +92,7 @@ impl Terminal {
 
 impl Renderer for Terminal {
     fn present(&mut self) -> std::io::Result<()> {
-        let mut out = std::io::stdout().lock();
+        let mut out = std::io::stdout();
         out.write_all(&self.buffer)?;
         out.flush()?;
         self.buffer.clear();

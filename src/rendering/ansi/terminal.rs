@@ -3,26 +3,23 @@ use crate::common::{color::Color, position::Position, size::Size};
 use crate::rendering::ansi::sequence;
 use crate::rendering::canvas::Canvas;
 use crate::rendering::renderer::Renderer;
-use std::io::Write;
+use std::io::{self, Write};
 use std::time::Instant;
 
 #[cfg(windows)]
-pub type Platform = std::fs::File;
+type PlatformOutput = std::fs::File;
 #[cfg(windows)]
-pub fn platform_output() -> Platform {
+fn platform_output() -> io::Result<PlatformOutput> {
     use std::os::windows::io::AsHandle;
-    let handle = std::io::stdout()
-        .as_handle()
-        .try_clone_to_owned()
-        .expect("could not duplicate stdout handle");
-    std::fs::File::from(handle)
+    let handle = std::io::stdout().as_handle().try_clone_to_owned()?;
+    Ok(std::fs::File::from(handle))
 }
 
 #[cfg(not(windows))]
-pub type Platform = std::io::Stdout;
+type PlatformOutput = std::io::Stdout;
 #[cfg(not(windows))]
-pub fn platform_output() -> Platform {
-    std::io::stdout()
+fn platform_output() -> io::Result<PlatformOutput> {
+    Ok(std::io::stdout())
 }
 
 pub struct Terminal {
@@ -31,26 +28,26 @@ pub struct Terminal {
     background: Option<Color>,
     origin: Instant,
     buffer: Vec<u8>,
-    output: Platform,
+    output: PlatformOutput,
 }
 
 impl Terminal {
-    pub fn new() -> Self {
+    pub fn new() -> io::Result<Self> {
         let mut terminal = Self {
             cursor: None,
             foreground: None,
             background: None,
             origin: Instant::now(),
             buffer: Vec::with_capacity(8192),
-            output: platform_output(),
+            output: platform_output()?,
         };
 
         sequence::HIDE_CURSOR.write_to(&mut terminal.buffer);
         sequence::ENTER_ALTERNATE.write_to(&mut terminal.buffer);
         sequence::CLEAR.write_to(&mut terminal.buffer);
-        let _ = terminal.present();
+        terminal.present()?;
 
-        terminal
+        Ok(terminal)
     }
 
     #[inline]

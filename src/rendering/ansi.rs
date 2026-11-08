@@ -2,28 +2,44 @@ use crate::{
     common::{Color, Digit3, Position, Size},
     rendering::{canvas::Canvas, etchel::Etchel, renderer::Renderer},
 };
-use std::{
-    io::{StdoutLock, Write},
-    time::Instant,
-};
-
-pub struct Terminal<'stdout_lock> {
-    size: Size,
-    origin: Instant,
-    cursor: Option<Position>,
-    foreground: Option<Color>,
-    background: Option<Color>,
-    buffer: Vec<u8>,
-    output: StdoutLock<'stdout_lock>,
-}
+use std::{io::Write, time::Instant};
 
 enum Layer {
     Foreground,
     Background,
 }
 
-impl<'stdout_lock> Terminal<'stdout_lock> {
-    pub fn with_size(size: Size) -> Self {
+pub struct Ansi<W: Write> {
+    size: Size,
+    origin: Instant,
+    cursor: Option<Position>,
+    foreground: Option<Color>,
+    background: Option<Color>,
+    buffer: Vec<u8>,
+    output: W,
+}
+
+#[cfg(windows)]
+impl Ansi<std::fs::File> {
+    pub fn terminal(size: Size) -> Self {
+        use std::os::windows::io::AsHandle;
+        let handle = std::io::stdout()
+            .as_handle()
+            .try_clone_to_owned()
+            .expect("could not duplicate stdout handle");
+        Self::with_output(size, std::fs::File::from(handle))
+    }
+}
+
+#[cfg(not(windows))]
+impl Ansi<std::io::Stdout> {
+    pub fn terminal(size: Size) -> Self {
+        Self::with_output(size, std::io::stdout())
+    }
+}
+
+impl<W: Write> Ansi<W> {
+    pub fn with_output(size: Size, output: W) -> Self {
         let capacity = (size.width * size.height * 32) as usize;
         Self {
             size,
@@ -32,7 +48,7 @@ impl<'stdout_lock> Terminal<'stdout_lock> {
             foreground: None,
             background: None,
             buffer: Vec::with_capacity(capacity),
-            output: std::io::stdout().lock(),
+            output,
         }
     }
 
@@ -95,7 +111,7 @@ impl<'stdout_lock> Terminal<'stdout_lock> {
     }
 }
 
-impl<'stdout_lock> Renderer for Terminal<'stdout_lock> {
+impl<W: Write> Renderer for Ansi<W> {
     fn present(&mut self) -> std::io::Result<()> {
         self.output.write_all(&self.buffer)?;
         self.output.flush()?;
@@ -104,7 +120,7 @@ impl<'stdout_lock> Renderer for Terminal<'stdout_lock> {
     }
 }
 
-impl<'stdout_lock> Canvas for Terminal<'stdout_lock> {
+impl<W: Write> Canvas for Ansi<W> {
     fn size(&self) -> Size {
         self.size
     }
@@ -137,10 +153,13 @@ mod tests {
 
     #[test]
     fn adjacent_plots_emit_one_move() {
-        let mut t = Terminal::with_size(Size {
-            width: 10,
-            height: 2,
-        });
+        let mut t = Ansi::with_output(
+            Size {
+                width: 10,
+                height: 2,
+            },
+            std::io::sink(),
+        );
         for x in 0..5 {
             t.plot(Position::new(x, 0), Etchel::solid(Color::new(1, 2, 3)));
         }
@@ -150,10 +169,13 @@ mod tests {
 
     #[test]
     fn two_push_move_emit_one() {
-        let mut t = Terminal::with_size(Size {
-            width: 10,
-            height: 2,
-        });
+        let mut t = Ansi::with_output(
+            Size {
+                width: 10,
+                height: 2,
+            },
+            std::io::sink(),
+        );
 
         t.push_move(Position::new(4, 0));
         t.push_move(Position::new(4, 0));
@@ -164,10 +186,13 @@ mod tests {
 
     #[test]
     fn two_push_foreground_emit_one() {
-        let mut t = Terminal::with_size(Size {
-            width: 10,
-            height: 2,
-        });
+        let mut t = Ansi::with_output(
+            Size {
+                width: 10,
+                height: 2,
+            },
+            std::io::sink(),
+        );
 
         t.push_foreground(Color::new(8, 8, 8));
         t.push_foreground(Color::new(8, 8, 8));
@@ -178,10 +203,13 @@ mod tests {
 
     #[test]
     fn two_push_background_emit_one() {
-        let mut t = Terminal::with_size(Size {
-            width: 10,
-            height: 2,
-        });
+        let mut t = Ansi::with_output(
+            Size {
+                width: 10,
+                height: 2,
+            },
+            std::io::sink(),
+        );
 
         t.push_background(Color::new(8, 8, 8));
         t.push_background(Color::new(8, 8, 8));

@@ -38,6 +38,16 @@ impl Writer {
     }
 
     #[inline]
+    pub fn forget_foreground(&mut self) {
+        self.foreground = None;
+    }
+
+    #[inline]
+    pub fn forget_background(&mut self) {
+        self.background = None;
+    }
+
+    #[inline]
     fn bump_cursor(&mut self) {
         self.cursor = self.cursor.map(|c| c + (1, 0))
     }
@@ -110,11 +120,13 @@ impl Writer {
     #[inline]
     pub fn push_alternate_enter(&mut self) {
         self.buffer.extend_from_slice(b"\x1b[?1049h");
+        self.forget_cursor();
     }
 
     #[inline]
     pub fn push_alternate_leave(&mut self) {
         self.buffer.extend_from_slice(b"\x1b[?1049l");
+        self.forget_cursor();
     }
 
     #[inline]
@@ -130,10 +142,13 @@ impl Writer {
     #[inline]
     pub fn push_clear(&mut self) {
         self.buffer.extend_from_slice(b"\x1b[2J");
+        self.forget_cursor();
     }
 
     #[inline]
     pub fn push_reset(&mut self) {
         self.buffer.extend_from_slice(b"\x1b[0m");
+        self.forget_foreground();
+        self.forget_background();
     }
 }

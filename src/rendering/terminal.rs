@@ -1,8 +1,9 @@
-use crate::common::{Color, Digit3, Position};
+use crate::{
+    common::{Color, Digit3, Position},
+    rendering::{context::Canvas, etchel::Etchel},
+};
 use std::io::Write;
-use std::ops::Add;
 
-#[derive(Default)]
 pub struct Terminal {
     cursor: Option<Position>,
     foreground: Option<Color>,
@@ -16,11 +17,20 @@ enum Layer {
 }
 
 impl Terminal {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            cursor: None,
+            foreground: None,
+            background: None,
+            buffer: Vec::with_capacity(capacity),
+        }
     }
 
-    pub fn push_move(&mut self, position: Position) {
+    pub fn new() -> Self {
+        Self::with_capacity(4096)
+    }
+
+    fn push_move(&mut self, position: Position) {
         if self.cursor == Some(position) {
             return;
         }
@@ -30,6 +40,10 @@ impl Terminal {
 
         write!(self.buffer, "\x1b[{};{}H", row, col).unwrap();
         self.cursor = Some(position);
+    }
+
+    fn bump_cursor(&mut self) {
+        self.cursor = self.cursor.map(|p| p + (1, 0));
     }
 
     fn push_color(&mut self, layer: Layer, color: Color) {
@@ -51,7 +65,7 @@ impl Terminal {
         self.buffer.push(b'm');
     }
 
-    pub fn push_foreground(&mut self, color: Color) {
+    fn push_foreground(&mut self, color: Color) {
         if self.foreground == Some(color) {
             return;
         }
@@ -60,7 +74,7 @@ impl Terminal {
         self.foreground = Some(color);
     }
 
-    pub fn push_background(&mut self, color: Color) {
+    fn push_background(&mut self, color: Color) {
         if self.background == Some(color) {
             return;
         }
@@ -69,9 +83,9 @@ impl Terminal {
         self.background = Some(color);
     }
 
-    pub fn push_byte(&mut self, value: u8) {
+    fn push_byte(&mut self, value: u8) {
         self.buffer.push(value);
-        self.cursor = self.cursor.map(|p| p + (1, 0));
+        self.bump_cursor();
     }
 
     pub fn flush(&mut self) -> std::io::Result<()> {
@@ -80,5 +94,25 @@ impl Terminal {
         out.flush()?;
         self.buffer.clear();
         Ok(())
+    }
+}
+
+impl Canvas for Terminal {
+    fn plot(&mut self, position: Position, etchel: Etchel) {
+        self.push_move(position);
+        self.push_foreground(etchel.foreground);
+        self.push_background(etchel.background);
+        self.push_byte(etchel.glyph);
+        self.bump_cursor();
+    }
+
+    fn fullscreen_blit(&mut self, etchels: &[Etchel]) {
+        self.push_move(Position::zero());
+        for etchel in etchels {
+            self.push_foreground(etchel.foreground);
+            self.push_background(etchel.background);
+            self.push_byte(etchel.glyph);
+        }
+        self.cursor = None;
     }
 }

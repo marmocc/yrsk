@@ -1,5 +1,6 @@
 use crate::common::{Color, Digit3, Position};
 use std::io::Write;
+use std::ops::Add;
 
 #[derive(Default)]
 pub struct Terminal {
@@ -37,10 +38,10 @@ impl Terminal {
         let b_digits = Digit3::new(color.b);
 
         self.buffer.extend_from_slice(b"\x1b[");
-        match layer {
-            Layer::Foreground => self.buffer.push(b'3'),
-            Layer::Background => self.buffer.push(b'4'),
-        }
+        self.buffer.push(match layer {
+            Layer::Foreground => b'3',
+            Layer::Background => b'4',
+        });
         self.buffer.extend_from_slice(b"8;2;");
         self.buffer.extend_from_slice(&r_digits.as_bytes());
         self.buffer.push(b';');
@@ -70,7 +71,7 @@ impl Terminal {
 
     pub fn push_byte(&mut self, value: u8) {
         self.buffer.push(value);
-        self.cursor = self.cursor.map(|p| p.add(1, 0));
+        self.cursor = self.cursor.map(|p| p + (1, 0));
     }
 
     pub fn flush(&mut self) -> std::io::Result<()> {

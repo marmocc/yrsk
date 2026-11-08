@@ -2,15 +2,19 @@ use crate::{
     common::{Color, Digit3, Position, Size},
     rendering::{canvas::Canvas, etchel::Etchel, renderer::Renderer},
 };
-use std::{io::Write, time::Instant};
+use std::{
+    io::{StdoutLock, Write},
+    time::Instant,
+};
 
-pub struct Terminal {
+pub struct Terminal<'stdout_lock> {
     size: Size,
     origin: Instant,
     cursor: Option<Position>,
     foreground: Option<Color>,
     background: Option<Color>,
     buffer: Vec<u8>,
+    output: StdoutLock<'stdout_lock>,
 }
 
 enum Layer {
@@ -18,7 +22,7 @@ enum Layer {
     Background,
 }
 
-impl Terminal {
+impl<'stdout_lock> Terminal<'stdout_lock> {
     pub fn with_size(size: Size) -> Self {
         let capacity = (size.width * size.height * 32) as usize;
         Self {
@@ -28,6 +32,7 @@ impl Terminal {
             foreground: None,
             background: None,
             buffer: Vec::with_capacity(capacity),
+            output: std::io::stdout().lock(),
         }
     }
 
@@ -90,17 +95,16 @@ impl Terminal {
     }
 }
 
-impl Renderer for Terminal {
+impl<'stdout_lock> Renderer for Terminal<'stdout_lock> {
     fn present(&mut self) -> std::io::Result<()> {
-        let mut out = std::io::stdout();
-        out.write_all(&self.buffer)?;
-        out.flush()?;
+        self.output.write_all(&self.buffer)?;
+        self.output.flush()?;
         self.buffer.clear();
         Ok(())
     }
 }
 
-impl Canvas for Terminal {
+impl<'stdout_lock> Canvas for Terminal<'stdout_lock> {
     fn size(&self) -> Size {
         self.size
     }

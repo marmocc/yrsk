@@ -8,6 +8,7 @@ pub struct Etchel {
 }
 
 impl Etchel {
+    #[inline]
     pub fn solid(color: Color) -> Self {
         Self {
             foreground: Color::black(),

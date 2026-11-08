@@ -1,10 +1,12 @@
 use crate::{
-    common::{Color, Digit3, Position},
-    rendering::{context::Canvas, etchel::Etchel},
+    common::{Color, Digit3, Position, Size},
+    rendering::{canvas::Canvas, etchel::Etchel},
 };
-use std::io::Write;
+use std::{io::Write, time::Instant};
 
 pub struct Terminal {
+    size: Size,
+    origin: Instant,
     cursor: Option<Position>,
     foreground: Option<Color>,
     background: Option<Color>,
@@ -17,17 +19,16 @@ enum Layer {
 }
 
 impl Terminal {
-    pub fn with_capacity(capacity: usize) -> Self {
+    pub fn with_size(size: Size) -> Self {
+        let capacity = (size.width * size.height * 32) as usize;
         Self {
+            size,
+            origin: Instant::now(),
             cursor: None,
             foreground: None,
             background: None,
             buffer: Vec::with_capacity(capacity),
         }
-    }
-
-    pub fn new() -> Self {
-        Self::with_capacity(4096)
     }
 
     fn push_move(&mut self, position: Position) {
@@ -98,6 +99,14 @@ impl Terminal {
 }
 
 impl Canvas for Terminal {
+    fn size(&self) -> Size {
+        self.size
+    }
+
+    fn elapsed(&self) -> std::time::Duration {
+        self.origin.elapsed()
+    }
+
     fn plot(&mut self, position: Position, etchel: Etchel) {
         self.push_move(position);
         self.push_foreground(etchel.foreground);

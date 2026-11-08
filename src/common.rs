@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Position {
     pub x: i32,
@@ -8,13 +10,33 @@ impl Position {
     pub fn new(x: i32, y: i32) -> Self {
         Self { x, y }
     }
+}
 
-    pub fn add(self, x: i32, y: i32) -> Self {
-        Self {
-            x: self.x + x,
-            y: self.y + y,
-        }
+impl Add for Position {
+    type Output = Position;
+    fn add(self, rhs: Self) -> Self::Output {
+        Position::new(self.x + rhs.x, self.y + rhs.y)
     }
+}
+
+impl Add<i32> for Position {
+    type Output = Position;
+    fn add(self, rhs: i32) -> Self::Output {
+        Position::new(self.x + rhs, self.y + rhs)
+    }
+}
+
+impl Add<(i32, i32)> for Position {
+    type Output = Position;
+    fn add(self, rhs: (i32, i32)) -> Self::Output {
+        Position::new(self.x + rhs.0, self.y + rhs.1)
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Size {
+    pub width: i32,
+    pub height: i32,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

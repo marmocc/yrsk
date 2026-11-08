@@ -84,7 +84,7 @@ impl Terminal {
         self.background = Some(color);
     }
 
-    fn push_byte(&mut self, value: u8) {
+    fn push_glpyh_u8(&mut self, value: u8) {
         self.buffer.push(value);
         self.bump_cursor();
     }
@@ -111,8 +111,7 @@ impl Canvas for Terminal {
         self.push_move(position);
         self.push_foreground(etchel.foreground);
         self.push_background(etchel.background);
-        self.push_byte(etchel.glyph);
-        self.bump_cursor();
+        self.push_glpyh_u8(etchel.glyph);
     }
 
     fn fullscreen_blit(&mut self, etchels: &[Etchel]) {
@@ -120,8 +119,26 @@ impl Canvas for Terminal {
         for etchel in etchels {
             self.push_foreground(etchel.foreground);
             self.push_background(etchel.background);
-            self.push_byte(etchel.glyph);
+            self.push_glpyh_u8(etchel.glyph);
         }
         self.cursor = None;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn adjacent_plots_emit_one_move() {
+        let mut t = Terminal::with_size(Size {
+            width: 10,
+            height: 2,
+        });
+        for x in 0..5 {
+            t.plot(Position::new(x, 0), Etchel::solid(Color::new(1, 2, 3)));
+        }
+        let moves = t.buffer.iter().filter(|&&b| b == b'H').count();
+        assert_eq!(moves, 1);
     }
 }

@@ -1,5 +1,6 @@
 use crate::common::Color;
 
+#[derive(Clone, Copy)]
 pub struct Etchel {
     pub foreground: Color,
     pub background: Color,

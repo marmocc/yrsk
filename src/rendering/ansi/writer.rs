@@ -33,7 +33,7 @@ impl Writer {
 
     #[inline]
     pub fn forget_cursor(&mut self) {
-        self.cursor == None;
+        self.cursor = None;
     }
 
     #[inline]

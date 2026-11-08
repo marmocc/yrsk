@@ -4,9 +4,10 @@ use crate::{
 };
 use std::{io::Write, time::Instant};
 
+#[repr(u8)]
 enum Layer {
-    Foreground,
-    Background,
+    Foreground = b'3',
+    Background = b'4',
 }
 
 pub struct Ansi<W: Write> {
@@ -50,22 +51,20 @@ impl<W: Write> Ansi<W> {
     }
 
     fn push_color(&mut self, layer: Layer, color: Color) {
-        let r_digits = Digit3::new(color.r);
-        let g_digits = Digit3::new(color.g);
-        let b_digits = Digit3::new(color.b);
+        let r = Digit3::new(color.r).as_bytes();
+        let g = Digit3::new(color.g).as_bytes();
+        let b = Digit3::new(color.b).as_bytes();
 
-        self.buffer.extend_from_slice(b"\x1b[");
-        self.buffer.push(match layer {
-            Layer::Foreground => b'3',
-            Layer::Background => b'4',
-        });
-        self.buffer.extend_from_slice(b"8;2;");
-        self.buffer.extend_from_slice(&r_digits.as_bytes());
-        self.buffer.push(b';');
-        self.buffer.extend_from_slice(&g_digits.as_bytes());
-        self.buffer.push(b';');
-        self.buffer.extend_from_slice(&b_digits.as_bytes());
-        self.buffer.push(b'm');
+        #[rustfmt::skip]
+        let sequence: [u8; 19] = [
+            b'\x1b', b'[', layer as u8,
+            b'8', b';', b'2', b';',
+            r[0], r[1], r[2], b';',
+            g[0], g[1], g[2], b';',
+            b[0], b[1], b[2], b'm',
+        ];
+
+        self.buffer.extend_from_slice(&sequence);
     }
 
     fn push_foreground(&mut self, color: Color) {

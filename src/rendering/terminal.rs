@@ -1,6 +1,6 @@
 use crate::{
     common::{Color, Digit3, Position, Size},
-    rendering::{canvas::Canvas, etchel::Etchel},
+    rendering::{canvas::Canvas, etchel::Etchel, renderer::Renderer},
 };
 use std::{io::Write, time::Instant};
 
@@ -84,12 +84,14 @@ impl Terminal {
         self.background = Some(color);
     }
 
-    fn push_glpyh_u8(&mut self, value: u8) {
+    fn push_glyph_u8(&mut self, value: u8) {
         self.buffer.push(value);
         self.bump_cursor();
     }
+}
 
-    pub fn flush(&mut self) -> std::io::Result<()> {
+impl Renderer for Terminal {
+    fn present(&mut self) -> std::io::Result<()> {
         let mut out = std::io::stdout().lock();
         out.write_all(&self.buffer)?;
         out.flush()?;
@@ -111,7 +113,7 @@ impl Canvas for Terminal {
         self.push_move(position);
         self.push_foreground(etchel.foreground);
         self.push_background(etchel.background);
-        self.push_glpyh_u8(etchel.glyph);
+        self.push_glyph_u8(etchel.glyph);
     }
 
     fn fullscreen_blit(&mut self, etchels: &[Etchel]) {
@@ -119,7 +121,7 @@ impl Canvas for Terminal {
         for etchel in etchels {
             self.push_foreground(etchel.foreground);
             self.push_background(etchel.background);
-            self.push_glpyh_u8(etchel.glyph);
+            self.push_glyph_u8(etchel.glyph);
         }
         self.cursor = None;
     }

@@ -88,7 +88,6 @@ impl Canvas for Terminal {
 
 impl Renderer for Terminal {
     fn present(&mut self) -> io::Result<()> {
-        self.writer.flush(&mut self.output)?;
-        Ok(())
+        self.writer.flush(&mut self.output)
     }
 }

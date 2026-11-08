@@ -25,7 +25,7 @@ impl Writer {
     }
 
     #[inline]
-    pub fn flush<T: Write>(&mut self, out: &mut T) -> io::Result<()> {
+    pub fn write_to<T: Write>(&mut self, out: &mut T) -> io::Result<()> {
         out.write_all(&self.buffer)?;
         out.flush()?;
         self.clear();

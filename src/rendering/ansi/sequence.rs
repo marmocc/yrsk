@@ -1,4 +1,4 @@
-use crate::common::{Color, Digit3, Position};
+use crate::common::{color::Color, digit3::Digit3, position::Position};
 use std::io::Write;
 
 pub struct Sequence<const N: usize> {

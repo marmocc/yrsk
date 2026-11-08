@@ -1,6 +1,7 @@
 use crate::{
     diagnostics::{measure::Measure, timings::Timings},
-    rendering::{canvas::Canvas, painter::Painter},
+    painters::painter::Painter,
+    rendering::canvas::Canvas,
 };
 use std::{io::Result, thread::sleep, time::Duration};
 

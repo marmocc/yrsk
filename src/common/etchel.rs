@@ -1,4 +1,4 @@
-use crate::common::Color;
+use crate::common::color::Color;
 
 #[derive(Clone, Copy)]
 pub struct Etchel {

@@ -1,7 +1,7 @@
-use crate::common::{Color, Position, Size};
+use crate::common::etchel::Etchel;
+use crate::common::{color::Color, position::Position, size::Size};
 use crate::rendering::ansi::sequence;
 use crate::rendering::canvas::Canvas;
-use crate::rendering::etchel::Etchel;
 use crate::rendering::renderer::Renderer;
 use std::io::Write;
 use std::time::Instant;

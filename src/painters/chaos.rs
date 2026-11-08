@@ -1,10 +1,11 @@
-use crate::common::{Color, Position};
-use crate::rendering::etchel::Etchel;
-use crate::rendering::painter::Painter;
+use crate::common::etchel::Etchel;
+use crate::common::{color::Color, position::Position};
+use crate::painters::painter::Painter;
+use crate::rendering::canvas::Canvas;
 
 pub struct Chaos;
 impl Painter for Chaos {
-    fn paint(&mut self, canvas: &mut impl super::canvas::Canvas) {
+    fn paint(&mut self, canvas: &mut impl Canvas) {
         let size = canvas.size();
         let time = canvas.elapsed().as_nanos() as u32;
 

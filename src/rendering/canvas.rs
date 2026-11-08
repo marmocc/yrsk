@@ -1,9 +1,5 @@
+use crate::common::{etchel::Etchel, position::Position, size::Size};
 use std::time::Duration;
-
-use crate::{
-    common::{Position, Size},
-    rendering::etchel::Etchel,
-};
 
 pub trait Canvas {
     fn elapsed(&self) -> Duration;

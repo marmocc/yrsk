@@ -19,25 +19,6 @@ pub struct Ansi<W: Write> {
     output: W,
 }
 
-#[cfg(windows)]
-impl Ansi<std::fs::File> {
-    pub fn terminal(size: Size) -> Self {
-        use std::os::windows::io::AsHandle;
-        let handle = std::io::stdout()
-            .as_handle()
-            .try_clone_to_owned()
-            .expect("could not duplicate stdout handle");
-        Self::with_output(size, std::fs::File::from(handle))
-    }
-}
-
-#[cfg(not(windows))]
-impl Ansi<std::io::Stdout> {
-    pub fn terminal(size: Size) -> Self {
-        Self::with_output(size, std::io::stdout())
-    }
-}
-
 impl<W: Write> Ansi<W> {
     pub fn with_output(size: Size, output: W) -> Self {
         let capacity = (size.width * size.height * 32) as usize;

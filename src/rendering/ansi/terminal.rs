@@ -1,5 +1,6 @@
 use crate::common::arena::Arena;
 use crate::common::position::Position;
+use crate::common::size::Size;
 use crate::rendering::ansi::writer::Writer;
 use crate::rendering::command::Command;
 use crate::rendering::renderer::Renderer;
@@ -53,6 +54,10 @@ impl Drop for Terminal {
 }
 
 impl Renderer for Terminal {
+    fn size(&self) -> Size {
+        Size::new(80, 40)
+    }
+
     fn present(&mut self, commands: &[Command], assets: Arena) -> io::Result<()> {
         for command in commands {
             match command {

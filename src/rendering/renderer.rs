@@ -1,7 +1,11 @@
-use crate::{common::arena::Arena, rendering::command::Command};
+use crate::{
+    common::{arena::Arena, size::Size},
+    rendering::command::Command,
+};
 use std::io;
 
 pub trait Renderer {
+    fn size(&self) -> Size;
     fn present(&mut self, commands: &[Command], assets: Arena) -> io::Result<()>;
 
     /*fn run(&mut self, painter: &mut impl Painter, fps: u32) -> io::Result<()> {

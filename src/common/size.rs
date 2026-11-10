@@ -9,4 +9,9 @@ impl Size {
     pub fn new(width: u32, height: u32) -> Self {
         Self { width, height }
     }
+
+    #[inline]
+    pub fn area(&self) -> u32 {
+        self.width * self.height
+    }
 }

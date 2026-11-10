@@ -16,6 +16,11 @@ impl Position {
     pub fn zero() -> Self {
         Self { x: 0, y: 0 }
     }
+
+    #[inline]
+    pub fn flatten(&self, stride: i32) -> i32 {
+        self.y * stride + self.x
+    }
 }
 
 impl Add for Position {

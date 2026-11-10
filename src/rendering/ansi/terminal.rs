@@ -1,8 +1,8 @@
-use crate::common::arena::Arena;
+use crate::common::etchel::Etchel;
 use crate::common::position::Position;
 use crate::common::size::Size;
 use crate::rendering::ansi::writer::Writer;
-use crate::rendering::command::Command;
+use crate::rendering::canvas::Canvas;
 use crate::rendering::renderer::Renderer;
 use std::io;
 
@@ -22,6 +22,8 @@ fn platform_output() -> io::Result<PlatformOutput> {
     Ok(std::io::stdout())
 }
 
+const DEFAULT_SIZE: Size = Size::new(80, 40);
+
 pub struct Terminal {
     writer: Writer,
     output: PlatformOutput,
@@ -30,7 +32,7 @@ pub struct Terminal {
 impl Terminal {
     pub fn new() -> io::Result<Self> {
         let mut terminal = Self {
-            writer: Writer::with_capacity(8192),
+            writer: Writer::new(DEFAULT_SIZE),
             output: platform_output()?,
         };
 
@@ -53,34 +55,24 @@ impl Drop for Terminal {
     }
 }
 
-impl Renderer for Terminal {
+impl Canvas for Terminal {
+    #[inline]
     fn size(&self) -> Size {
         Size::new(80, 40)
     }
 
-    fn present(&mut self, commands: &[Command], assets: Arena) -> io::Result<()> {
-        for command in commands {
-            match command {
-                Command::Plot { position, etchel } => {
-                    self.writer.push_move(*position);
-                    self.writer.push_foreground(etchel.foreground);
-                    self.writer.push_background(etchel.background);
-                    self.writer.push_glyph_u8(etchel.glyph);
-                }
-                Command::FullscreenBlit { handle } => {
-                    let etchels = assets.get(*handle);
-                    self.writer.push_move(Position::zero());
-                    for etchel in etchels {
-                        self.writer.push_foreground(etchel.foreground);
-                        self.writer.push_background(etchel.background);
-                        self.writer.push_glyph_u8(etchel.glyph);
-                    }
-                    self.writer.forget_cursor();
-                }
-                Command::Blit { position, handle } => todo!(),
-            }
-        }
+    #[inline]
+    fn plot(&mut self, position: Position, etchel: Etchel) {
+        self.writer.push_move(position);
+        self.writer.push_foreground(etchel.foreground);
+        self.writer.push_background(etchel.background);
+        self.writer.push_glyph_u8(etchel.glyph);
+    }
+}
 
+impl Renderer for Terminal {
+    #[inline]
+    fn present(&mut self) -> io::Result<()> {
         self.writer.write_to(&mut self.output)
     }
 }

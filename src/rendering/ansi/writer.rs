@@ -1,21 +1,27 @@
-use crate::common::{color::Color, digit3::Digit3, position::Position};
+use crate::common::{color::Color, digit3::Digit3, position::Position, size::Size};
 use std::io::{self, Write};
+
+const DEFAULT_SEQUENCE_LENGTH: usize = 32;
 
 pub struct Writer {
     cursor: Option<Position>,
     foreground: Option<Color>,
     background: Option<Color>,
     buffer: Vec<u8>,
+    size: Size,
 }
 
 impl Writer {
     #[inline]
-    pub fn with_capacity(capacity: usize) -> Self {
+    pub fn new(size: Size) -> Self {
         Self {
+            size,
             cursor: None,
             foreground: None,
             background: None,
-            buffer: Vec::with_capacity(capacity),
+            buffer: Vec::with_capacity(
+                size.width as usize * size.height as usize * DEFAULT_SEQUENCE_LENGTH,
+            ),
         }
     }
 
@@ -48,8 +54,18 @@ impl Writer {
     }
 
     #[inline]
-    fn bump_cursor(&mut self) {
-        self.cursor = self.cursor.map(|c| c + (1, 0))
+    pub fn bump_cursor(&mut self) {
+        let max_x = (self.size.width as i32) - 1;
+        let max_y = (self.size.height as i32) - 1;
+        self.cursor = self.cursor.map(|p| {
+            if p.x < max_x {
+                p.add_x(1)
+            } else if p.y < max_y {
+                p.add_y(1).with_x(0)
+            } else {
+                Position::new(max_x, max_y)
+            }
+        })
     }
 
     #[inline]
@@ -158,7 +174,7 @@ mod tests {
     use super::*;
 
     fn writer() -> Writer {
-        Writer::with_capacity(256)
+        Writer::new(Size::new(80, 40))
     }
 
     // --- cursor ---------------------------------------------------------
@@ -219,6 +235,17 @@ mod tests {
         w.forget_cursor();
         w.push_move(Position::new(2, 2));
         assert_eq!(w.buffer, b"\x1b[3;3H\x1b[3;3H");
+    }
+
+    #[test]
+    fn bump_cursor_into_new_line() {
+        let mut w = writer();
+        w.push_move(Position::new(78, 0));
+        w.push_glyph_u8(b'a');
+        assert_eq!(w.cursor, Some(Position::new(79, 0)));
+        w.push_glyph_u8(b'a');
+        assert_eq!(w.cursor, Some(Position::new(0, 1)));
+        assert_eq!(w.buffer, b"\x1b[1;79Haa");
     }
 
     // --- colours --------------------------------------------------------

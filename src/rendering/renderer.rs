@@ -1,35 +1,23 @@
-use crate::{
-    common::{arena::Arena, size::Size},
-    rendering::command::Command,
+use std::{
+    io,
+    time::{Duration, Instant},
 };
-use std::io;
 
-pub trait Renderer {
-    fn size(&self) -> Size;
-    fn present(&mut self, commands: &[Command], assets: Arena) -> io::Result<()>;
+use crate::{diagnostics::measure::Measure, painters::chaos, rendering::canvas::Canvas};
 
-    /*fn run(&mut self, painter: &mut impl Painter, fps: u32) -> io::Result<()> {
-        let wait = Duration::from_secs_f32(1.0 / (fps as f32));
-        loop {
-            painter.paint(self);
-            self.present()?;
-            sleep(wait);
-        }
-    }
+pub trait Renderer: Canvas + Sized {
+    fn present(&mut self) -> io::Result<()>;
 
-    fn benchmark(&mut self, painter: &mut impl Painter, iterations: u32) -> io::Result<Timings> {
+    fn benchmark(&mut self, iterations: u32) -> io::Result<(Duration, Duration)> {
         let mut paint_sum: Duration = Duration::ZERO;
         let mut present_sum: Duration = Duration::ZERO;
 
+        let origin = Instant::now();
         for _ in 0..iterations {
-            Measure::accumulate(&mut paint_sum, || painter.paint(self));
+            Measure::accumulate(&mut paint_sum, || chaos(origin, self));
             Measure::accumulate(&mut present_sum, || self.present())?;
         }
 
-        Ok(Timings::new(
-            paint_sum / iterations,
-            Duration::ZERO / iterations,
-            present_sum / iterations,
-        ))
-    }*/
+        Ok((paint_sum / iterations, present_sum / iterations))
+    }
 }

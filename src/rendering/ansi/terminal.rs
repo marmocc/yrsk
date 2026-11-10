@@ -1,7 +1,7 @@
-use crate::common::etchel::Etchel;
-use crate::common::{position::Position, size::Size};
+use crate::common::arena::Arena;
+use crate::common::position::Position;
 use crate::rendering::ansi::writer::Writer;
-use crate::rendering::canvas::Canvas;
+use crate::rendering::command::Command;
 use crate::rendering::renderer::Renderer;
 use std::io;
 use std::time::Instant;
@@ -39,7 +39,7 @@ impl Terminal {
         terminal.writer.push_cursor_hide();
         terminal.writer.push_alternate_enter();
         terminal.writer.push_clear();
-        terminal.present()?;
+        terminal.writer.write_to(&mut terminal.output)?;
 
         Ok(terminal)
     }
@@ -51,43 +51,34 @@ impl Drop for Terminal {
         self.writer.push_reset();
         self.writer.push_cursor_show();
         self.writer.push_alternate_leave();
-        let _ = self.present();
-    }
-}
-
-impl Canvas for Terminal {
-    #[inline]
-    fn size(&self) -> Size {
-        Size::new(80, 40) // Placeholder
-    }
-
-    #[inline]
-    fn elapsed(&self) -> std::time::Duration {
-        self.origin.elapsed()
-    }
-
-    #[inline]
-    fn plot(&mut self, position: Position, etchel: Etchel) {
-        self.writer.push_move(position);
-        self.writer.push_foreground(etchel.foreground);
-        self.writer.push_background(etchel.background);
-        self.writer.push_glyph_u8(etchel.glyph);
-    }
-
-    #[inline]
-    fn fullscreen_blit(&mut self, etchels: &[Etchel]) {
-        self.writer.push_move(Position::zero());
-        for etchel in etchels {
-            self.writer.push_foreground(etchel.foreground);
-            self.writer.push_background(etchel.background);
-            self.writer.push_glyph_u8(etchel.glyph);
-        }
-        self.writer.forget_cursor();
+        let _ = self.writer.write_to(&mut self.output);
     }
 }
 
 impl Renderer for Terminal {
-    fn present(&mut self) -> io::Result<()> {
+    fn present(&mut self, commands: &[Command], assets: Arena) -> io::Result<()> {
+        for command in commands {
+            match command {
+                Command::Plot { position, etchel } => {
+                    self.writer.push_move(*position);
+                    self.writer.push_foreground(etchel.foreground);
+                    self.writer.push_background(etchel.background);
+                    self.writer.push_glyph_u8(etchel.glyph);
+                }
+                Command::FullscreenBlit { handle } => {
+                    let etchels = assets.get(*handle);
+                    self.writer.push_move(Position::zero());
+                    for etchel in etchels {
+                        self.writer.push_foreground(etchel.foreground);
+                        self.writer.push_background(etchel.background);
+                        self.writer.push_glyph_u8(etchel.glyph);
+                    }
+                    self.writer.forget_cursor();
+                }
+                Command::Blit { position, handle } => todo!(),
+            }
+        }
+
         self.writer.write_to(&mut self.output)
     }
 }

@@ -2,6 +2,7 @@ use crate::common::etchel::Etchel;
 use crate::common::{color::Color, position::Position};
 use crate::painters::painter::Painter;
 use crate::rendering::canvas::Canvas;
+use crate::rendering::command::Command;
 
 pub struct Chaos;
 impl Painter for Chaos {
@@ -19,7 +20,11 @@ impl Painter for Chaos {
                 h ^= h >> 16;
 
                 let color = Color::new(h as u8, (h >> 8) as u8, (h >> 16) as u8);
-                canvas.plot(Position::new(x as i32, y as i32), Etchel::solid(color));
+                let command = Command::Plot {
+                    position: Position::new(x as i32, y as i32),
+                    etchel: Etchel::solid(color),
+                };
+                canvas.execute(command);
             }
         }
     }

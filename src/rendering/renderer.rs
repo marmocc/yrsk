@@ -1,14 +1,15 @@
 use crate::{
+    common::arena::Arena,
     diagnostics::{measure::Measure, timings::Timings},
     painters::painter::Painter,
-    rendering::canvas::Canvas,
+    rendering::{canvas::Canvas, command::Command},
 };
 use std::{io, thread::sleep, time::Duration};
 
-pub trait Renderer: Canvas + Sized {
-    fn present(&mut self) -> io::Result<()>;
+pub trait Renderer {
+    fn present(&mut self, commands: &[Command], assets: Arena) -> io::Result<()>;
 
-    fn run(&mut self, painter: &mut impl Painter, fps: u32) -> io::Result<()> {
+    /*fn run(&mut self, painter: &mut impl Painter, fps: u32) -> io::Result<()> {
         let wait = Duration::from_secs_f32(1.0 / (fps as f32));
         loop {
             painter.paint(self);
@@ -31,5 +32,5 @@ pub trait Renderer: Canvas + Sized {
             Duration::ZERO / iterations,
             present_sum / iterations,
         ))
-    }
+    }*/
 }

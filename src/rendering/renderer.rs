@@ -1,10 +1,5 @@
-use crate::{
-    common::arena::Arena,
-    diagnostics::{measure::Measure, timings::Timings},
-    painters::painter::Painter,
-    rendering::{canvas::Canvas, command::Command},
-};
-use std::{io, thread::sleep, time::Duration};
+use crate::{common::arena::Arena, rendering::command::Command};
+use std::io;
 
 pub trait Renderer {
     fn present(&mut self, commands: &[Command], assets: Arena) -> io::Result<()>;

@@ -4,7 +4,6 @@ use crate::rendering::ansi::writer::Writer;
 use crate::rendering::command::Command;
 use crate::rendering::renderer::Renderer;
 use std::io;
-use std::time::Instant;
 
 #[cfg(windows)]
 type PlatformOutput = std::fs::File;
@@ -23,7 +22,6 @@ fn platform_output() -> io::Result<PlatformOutput> {
 }
 
 pub struct Terminal {
-    origin: Instant,
     writer: Writer,
     output: PlatformOutput,
 }
@@ -31,7 +29,6 @@ pub struct Terminal {
 impl Terminal {
     pub fn new() -> io::Result<Self> {
         let mut terminal = Self {
-            origin: Instant::now(),
             writer: Writer::with_capacity(8192),
             output: platform_output()?,
         };

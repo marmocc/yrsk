@@ -21,6 +21,13 @@ impl Arena {
         }
     }
 
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            buffer: Vec::with_capacity(capacity),
+            generation: 0,
+        }
+    }
+
     pub fn reserve<T>(&mut self, length: usize) -> Handle<T> {
         let align = std::mem::align_of::<T>();
         let size = std::mem::size_of::<T>() * length;
@@ -81,5 +88,11 @@ impl Arena {
     pub fn clear(&mut self) {
         self.buffer.clear();
         self.generation = self.generation.wrapping_add(1);
+    }
+}
+
+impl Default for Arena {
+    fn default() -> Self {
+        Self::new()
     }
 }

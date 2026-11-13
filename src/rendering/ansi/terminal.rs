@@ -4,42 +4,41 @@ use crate::common::size::Size;
 use crate::rendering::ansi::writer::Writer;
 use crate::rendering::canvas::Canvas;
 use crate::rendering::renderer::Renderer;
-use std::io;
+use std::fs::File;
+use std::io::{Result, Write};
+
+#[cfg(unix)]
+pub fn get_raw_stdout() -> Result<File> {
+    use std::os::fd::AsFd;
+    let fd = std::io::stdout().as_fd().try_clone_to_owned()?;
+    Ok(std::fs::File::from(fd))
+}
 
 #[cfg(windows)]
-type PlatformOutput = std::fs::File;
-#[cfg(windows)]
-fn platform_output() -> io::Result<PlatformOutput> {
+pub fn get_raw_stdout() -> Result<File> {
     use std::os::windows::io::AsHandle;
     let handle = std::io::stdout().as_handle().try_clone_to_owned()?;
     Ok(std::fs::File::from(handle))
-}
-
-#[cfg(not(windows))]
-type PlatformOutput = std::io::Stdout;
-#[cfg(not(windows))]
-fn platform_output() -> io::Result<PlatformOutput> {
-    Ok(std::io::stdout())
 }
 
 const DEFAULT_SIZE: Size = Size::new(80, 40);
 
 pub struct Terminal {
     writer: Writer,
-    output: PlatformOutput,
+    output: File,
 }
 
 impl Terminal {
-    pub fn new() -> io::Result<Self> {
+    pub fn new() -> Result<Self> {
         let mut terminal = Self {
             writer: Writer::new(DEFAULT_SIZE),
-            output: platform_output()?,
+            output: get_raw_stdout()?,
         };
 
         terminal.writer.push_cursor_hide();
         terminal.writer.push_alternate_enter();
         terminal.writer.push_clear();
-        terminal.writer.write_to(&mut terminal.output)?;
+        terminal.present()?;
 
         Ok(terminal)
     }
@@ -51,7 +50,7 @@ impl Drop for Terminal {
         self.writer.push_reset();
         self.writer.push_cursor_show();
         self.writer.push_alternate_leave();
-        let _ = self.writer.write_to(&mut self.output);
+        let _ = self.present();
     }
 }
 
@@ -72,7 +71,9 @@ impl Canvas for Terminal {
 
 impl Renderer for Terminal {
     #[inline]
-    fn present(&mut self) -> io::Result<()> {
-        self.writer.write_to(&mut self.output)
+    fn present(&mut self) -> Result<()> {
+        self.output.write_all(self.writer.written())?;
+        self.writer.clear();
+        Ok(())
     }
 }

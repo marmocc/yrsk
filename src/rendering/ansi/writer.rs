@@ -1,5 +1,5 @@
 use crate::common::{color::Color, digit3::Digit3, position::Position, size::Size};
-use std::io::{self, Write};
+use std::io::Write;
 
 const DEFAULT_SEQUENCE_LENGTH: usize = 32;
 
@@ -26,16 +26,13 @@ impl Writer {
     }
 
     #[inline]
-    pub fn clear(&mut self) {
-        self.buffer.clear();
+    pub fn written(&self) -> &[u8] {
+        &self.buffer
     }
 
     #[inline]
-    pub fn write_to<T: Write>(&mut self, out: &mut T) -> io::Result<()> {
-        out.write_all(&self.buffer)?;
-        out.flush()?;
-        self.clear();
-        Ok(())
+    pub fn clear(&mut self) {
+        self.buffer.clear();
     }
 
     #[inline]
@@ -390,35 +387,5 @@ mod tests {
         w.clear();
         w.push_reset();
         assert_eq!(w.buffer, b"\x1b[0m");
-    }
-
-    // --- output ---------------------------------------------------------
-
-    #[test]
-    fn write_to_sends_buffer_and_empties_it() {
-        let mut w = writer();
-        w.push_move(Position::new(0, 0));
-        w.push_glyph_u8(b'x');
-
-        let mut out = Vec::new();
-        w.write_to(&mut out).unwrap();
-
-        assert_eq!(out, b"\x1b[1;1Hx");
-        assert!(w.buffer.is_empty());
-    }
-
-    #[test]
-    fn write_to_keeps_tracked_state_because_terminal_keeps_it_too() {
-        let mut w = writer();
-        w.push_move(Position::new(0, 0));
-        w.push_foreground(Color::new(1, 2, 3));
-        w.push_glyph_u8(b'x');
-
-        let mut out = Vec::new();
-        w.write_to(&mut out).unwrap();
-
-        w.push_move(Position::new(1, 0));
-        w.push_foreground(Color::new(1, 2, 3));
-        assert!(w.buffer.is_empty());
     }
 }

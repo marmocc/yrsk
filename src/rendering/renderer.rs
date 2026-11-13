@@ -1,20 +1,30 @@
-use std::{
-    io,
-    time::{Duration, Instant},
+use std::{io::Result, time::Duration};
+
+use crate::{
+    diagnostics::measure::Measure,
+    rendering::{canvas::Canvas, painter::Painter},
 };
 
-use crate::{diagnostics::measure::Measure, painters::chaos, rendering::canvas::Canvas};
-
 pub trait Renderer: Canvas + Sized {
-    fn present(&mut self) -> io::Result<()>;
+    fn present(&mut self) -> Result<()>;
 
-    fn benchmark(&mut self, iterations: u32) -> io::Result<(Duration, Duration)> {
+    fn run(&mut self, painter: &mut impl Painter) -> Result<()> {
+        loop {
+            painter.paint(self);
+            self.present()?;
+        }
+    }
+
+    fn benchmark(
+        &mut self,
+        painter: &mut impl Painter,
+        iterations: u32,
+    ) -> Result<(Duration, Duration)> {
         let mut paint_sum: Duration = Duration::ZERO;
         let mut present_sum: Duration = Duration::ZERO;
 
-        let origin = Instant::now();
         for _ in 0..iterations {
-            Measure::accumulate(&mut paint_sum, || chaos(origin, self));
+            Measure::accumulate(&mut paint_sum, || painter.paint(self));
             Measure::accumulate(&mut present_sum, || self.present())?;
         }
 

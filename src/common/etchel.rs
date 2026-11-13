@@ -1,6 +1,6 @@
 use crate::common::color::Color;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Etchel {
     pub foreground: Color,
     pub background: Color,
@@ -9,7 +9,7 @@ pub struct Etchel {
 
 impl Etchel {
     #[inline]
-    pub fn solid(color: Color) -> Self {
+    pub const fn solid(color: Color) -> Self {
         Self {
             foreground: Color::black(),
             background: color,

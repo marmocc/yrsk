@@ -57,7 +57,7 @@ impl Drop for Terminal {
 impl Canvas for Terminal {
     #[inline]
     fn size(&self) -> Size {
-        Size::new(80, 40)
+        DEFAULT_SIZE
     }
 
     #[inline]

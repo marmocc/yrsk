@@ -18,7 +18,7 @@ impl Writer {
             foreground: None,
             background: None,
             buffer: Vec::with_capacity(
-                size.width as usize * size.height as usize * DEFAULT_SEQUENCE_LENGTH,
+                size.width() as usize * size.height() as usize * DEFAULT_SEQUENCE_LENGTH,
             ),
         }
     }
@@ -129,8 +129,9 @@ impl Writer {
 
     #[inline]
     pub fn push_glyph_char(&mut self, glyph: char) {
-        let length = self.buffer.len();
-        glyph.encode_utf8(&mut self.buffer[length..]);
+        let mut scratch = [0u8; 4];
+        let encoded = glyph.encode_utf8(&mut scratch).as_bytes();
+        self.buffer.extend_from_slice(encoded);
         self.bump_cursor();
     }
 
@@ -175,7 +176,7 @@ mod tests {
     use super::*;
 
     fn writer() -> Writer {
-        Writer::new(Size::new(80, 40))
+        Writer::new(Size::try_new(80, 40).unwrap())
     }
 
     // --- cursor ---------------------------------------------------------
@@ -246,6 +247,47 @@ mod tests {
         assert_eq!(w.cursor, Some(Position::new(79, 0)));
         w.push_glyph_u8(b'a');
         assert_eq!(w.cursor, Some(Position::new(0, 1)));
+    }
+
+    #[test]
+    fn ascii_char_is_encoded() {
+        let mut w = writer();
+        w.push_glyph_char('a');
+        assert_eq!(w.buffer, b"a");
+    }
+
+    #[test]
+    fn two_byte_char_is_utf8_encoded() {
+        let mut w = writer();
+        w.push_glyph_char('é');
+        assert_eq!(w.buffer, "é".as_bytes());
+    }
+
+    #[test]
+    fn four_byte_char_is_utf8_encoded() {
+        let mut w = writer();
+        w.push_glyph_char('\u{1f600}');
+        assert_eq!(w.buffer, "\u{1f600}".as_bytes());
+    }
+
+    #[test]
+    fn char_advances_tracked_cursor_once() {
+        let mut w = writer();
+        w.push_move(Position::new(0, 0));
+        w.push_glyph_char('é');
+        w.push_move(Position::new(1, 0));
+        assert_eq!(w.buffer, "\x1b[00001;00001Hé".as_bytes());
+    }
+
+    #[test]
+    fn repeated_char_does_not_emit_cursor_moves() {
+        let mut w = writer();
+        w.push_move(Position::new(0, 0));
+        w.push_glyph_char('a');
+        w.push_move(Position::new(1, 0));
+        w.push_glyph_char('b');
+        w.push_move(Position::new(2, 0));
+        assert_eq!(w.buffer, b"\x1b[00001;00001Hab");
     }
 
     // --- colours --------------------------------------------------------

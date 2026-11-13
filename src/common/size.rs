@@ -1,26 +1,52 @@
 use crate::common::position::Position;
+use crate::{Error, Result};
+use std::num::NonZeroU16;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Size {
-    pub width: u16,
-    pub height: u16,
+    pub width: NonZeroU16,
+    pub height: NonZeroU16,
 }
 
 impl Size {
     #[inline]
-    pub const fn new(width: u16, height: u16) -> Self {
-        assert!(width != 0 && height != 0);
+    pub const fn new(width: NonZeroU16, height: NonZeroU16) -> Self {
         Self { width, height }
     }
 
     #[inline]
-    pub const fn area(&self) -> u32 {
-        self.width as u32 * self.height as u32
+    pub const fn try_new(width: u16, height: u16) -> Result<Self> {
+        let width = match NonZeroU16::new(width) {
+            Some(width) => width,
+            None => return Err(Error::ZeroWidth),
+        };
+
+        let height = match NonZeroU16::new(height) {
+            Some(height) => height,
+            None => return Err(Error::ZeroHeight),
+        };
+
+        Ok(Self { width, height })
     }
 
     #[inline]
-    pub const fn last(&self) -> Position {
-        Position::new(self.width - 1, self.height - 1)
+    pub const fn width(self) -> u16 {
+        self.width.get()
+    }
+
+    #[inline]
+    pub const fn height(self) -> u16 {
+        self.height.get()
+    }
+
+    #[inline]
+    pub const fn area(self) -> u32 {
+        self.width.get() as u32 * self.height.get() as u32
+    }
+
+    #[inline]
+    pub const fn last(self) -> Position {
+        Position::new(self.width.get() - 1, self.height.get() - 1)
     }
 
     #[inline]
@@ -33,5 +59,94 @@ impl Size {
         } else {
             max_position
         }
+    }
+}
+
+impl TryFrom<(u16, u16)> for Size {
+    type Error = crate::Error;
+
+    fn try_from((width, height): (u16, u16)) -> Result<Self> {
+        Self::try_new(width, height)
+    }
+}
+
+impl From<Size> for (u16, u16) {
+    fn from(size: Size) -> Self {
+        (size.width(), size.height())
+    }
+}
+
+impl From<(NonZeroU16, NonZeroU16)> for Size {
+    fn from((width, height): (NonZeroU16, NonZeroU16)) -> Self {
+        Self::new(width, height)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn try_new_rejects_zero_width() {
+        assert!(matches!(Size::try_new(0, 40), Err(Error::ZeroWidth)));
+    }
+
+    #[test]
+    fn try_new_rejects_zero_height() {
+        assert!(matches!(Size::try_new(80, 0), Err(Error::ZeroHeight)));
+    }
+
+    #[test]
+    fn try_new_accepts_non_zero_dimensions() {
+        let size = Size::try_new(80, 40).unwrap();
+
+        assert_eq!(size.width(), 80);
+        assert_eq!(size.height(), 40);
+        assert_eq!(size.area(), 3200);
+    }
+
+    #[test]
+    fn try_from_tuple_reports_zero_dimension() {
+        assert!(matches!(Size::try_from((0, 40)), Err(Error::ZeroWidth)));
+        assert!(matches!(Size::try_from((80, 0)), Err(Error::ZeroHeight)));
+        assert!(Size::try_from((80, 40)).is_ok());
+    }
+
+    #[test]
+    fn converts_to_and_from_raw_pair() {
+        let size = Size::try_new(80, 40).unwrap();
+        let non_zero = (NonZeroU16::new(80).unwrap(), NonZeroU16::new(40).unwrap());
+
+        assert_eq!(Size::from(non_zero), size);
+
+        let pair: (u16, u16) = size.into();
+        assert_eq!(pair, (80, 40));
+    }
+
+    #[test]
+    fn last_is_zero_based() {
+        assert_eq!(Size::try_new(80, 40).unwrap().last(), Position::new(79, 39));
+    }
+
+    #[test]
+    fn one_by_one_does_not_underflow() {
+        let size = Size::try_new(1, 1).unwrap();
+
+        assert_eq!(size.last(), Position::new(0, 0));
+        assert_eq!(size.advance(Position::new(0, 0)), Position::new(0, 0));
+    }
+
+    #[test]
+    fn advance_wraps_to_next_row() {
+        let size = Size::try_new(80, 40).unwrap();
+
+        assert_eq!(size.advance(Position::new(79, 0)), Position::new(0, 1));
+    }
+
+    #[test]
+    fn advance_clamps_at_last_position() {
+        let size = Size::try_new(80, 40).unwrap();
+
+        assert_eq!(size.advance(Position::new(79, 39)), Position::new(79, 39));
     }
 }

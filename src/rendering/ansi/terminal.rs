@@ -1,27 +1,16 @@
+use crate::Result;
 use crate::common::etchel::Etchel;
 use crate::common::position::Position;
 use crate::common::size::Size;
+use crate::rendering::ansi::platform::prepare_and_get_stdout;
 use crate::rendering::ansi::writer::Writer;
 use crate::rendering::canvas::Canvas;
 use crate::rendering::renderer::Renderer;
 use std::fs::File;
-use std::io::{Result, Write};
+use std::io::Write;
+use std::num::NonZeroU16;
 
-#[cfg(unix)]
-pub fn get_raw_stdout() -> Result<File> {
-    use std::os::fd::AsFd;
-    let fd = std::io::stdout().as_fd().try_clone_to_owned()?;
-    Ok(std::fs::File::from(fd))
-}
-
-#[cfg(windows)]
-pub fn get_raw_stdout() -> Result<File> {
-    use std::os::windows::io::AsHandle;
-    let handle = std::io::stdout().as_handle().try_clone_to_owned()?;
-    Ok(std::fs::File::from(handle))
-}
-
-const DEFAULT_SIZE: Size = Size::new(80, 40);
+const DEFAULT_SIZE: Size = Size::new(NonZeroU16::new(80).unwrap(), NonZeroU16::new(40).unwrap());
 
 pub struct Terminal {
     writer: Writer,
@@ -32,7 +21,7 @@ impl Terminal {
     pub fn new() -> Result<Self> {
         let mut terminal = Self {
             writer: Writer::new(DEFAULT_SIZE),
-            output: get_raw_stdout()?,
+            output: prepare_and_get_stdout()?,
         };
 
         terminal.writer.push_cursor_hide();

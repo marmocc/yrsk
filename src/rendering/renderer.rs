@@ -1,9 +1,9 @@
-use std::{io::Result, time::Duration};
-
 use crate::{
+    Result,
     diagnostics::measure::Measure,
     rendering::{canvas::Canvas, painter::Painter},
 };
+use std::time::Duration;
 
 pub trait Renderer: Canvas + Sized {
     fn present(&mut self) -> Result<()>;
@@ -20,6 +20,7 @@ pub trait Renderer: Canvas + Sized {
         painter: &mut impl Painter,
         iterations: u32,
     ) -> Result<(Duration, Duration)> {
+        let iterations = iterations.max(1);
         let mut paint_sum: Duration = Duration::ZERO;
         let mut present_sum: Duration = Duration::ZERO;
 

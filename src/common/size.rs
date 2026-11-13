@@ -15,18 +15,11 @@ impl Size {
     }
 
     #[inline]
-    pub const fn try_new(width: u16, height: u16) -> Result<Self> {
-        let width = match NonZeroU16::new(width) {
-            Some(width) => width,
-            None => return Err(Error::ZeroWidth),
-        };
-
-        let height = match NonZeroU16::new(height) {
-            Some(height) => height,
-            None => return Err(Error::ZeroHeight),
-        };
-
-        Ok(Self { width, height })
+    pub const fn try_new(width: u16, height: u16) -> Option<Self> {
+        match (NonZeroU16::new(width), NonZeroU16::new(height)) {
+            (Some(width), Some(height)) => Some(Self { width, height }),
+            _ => None,
+        }
     }
 
     #[inline]
@@ -42,6 +35,11 @@ impl Size {
     #[inline]
     pub const fn area(self) -> u32 {
         self.width.get() as u32 * self.height.get() as u32
+    }
+
+    #[inline]
+    pub const fn contains(&self, position: Position) -> bool {
+        position.x < self.width.get() && position.y < self.height.get()
     }
 
     #[inline]
@@ -66,7 +64,11 @@ impl TryFrom<(u16, u16)> for Size {
     type Error = crate::Error;
 
     fn try_from((width, height): (u16, u16)) -> Result<Self> {
-        Self::try_new(width, height)
+        match Self::try_new(width, height) {
+            Some(size) => Ok(size),
+            None if width == 0 => Err(Error::ZeroWidth),
+            None => Err(Error::ZeroHeight),
+        }
     }
 }
 
@@ -87,13 +89,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn try_new_rejects_zero_width() {
-        assert!(matches!(Size::try_new(0, 40), Err(Error::ZeroWidth)));
+    fn try_new_rejects_zero_dimensions() {
+        assert_eq!(Size::try_new(0, 40), None);
+        assert_eq!(Size::try_new(80, 0), None);
+        assert_eq!(Size::try_new(0, 0), None);
     }
 
     #[test]
-    fn try_new_rejects_zero_height() {
-        assert!(matches!(Size::try_new(80, 0), Err(Error::ZeroHeight)));
+    fn try_new_can_be_unwrapped_in_a_constant() {
+        const SIZE: Size = Size::try_new(80, 40).unwrap();
+
+        assert_eq!(SIZE.width(), 80);
+        assert_eq!(SIZE.height(), 40);
     }
 
     #[test]
@@ -126,6 +133,16 @@ mod tests {
     #[test]
     fn last_is_zero_based() {
         assert_eq!(Size::try_new(80, 40).unwrap().last(), Position::new(79, 39));
+    }
+
+    #[test]
+    fn contains_checks_bounds() {
+        let size = Size::try_new(80, 40).unwrap();
+
+        assert!(size.contains(Position::new(0, 0)));
+        assert!(size.contains(Position::new(79, 39)));
+        assert!(!size.contains(Position::new(80, 39)));
+        assert!(!size.contains(Position::new(79, 40)));
     }
 
     #[test]

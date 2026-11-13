@@ -1,6 +1,4 @@
-use crate::common::{color::Color, digit3::Digit3, position::Position, size::Size};
-use std::io::Write;
-
+use crate::common::{color::Color, digits::Digits, position::Position, size::Size};
 const DEFAULT_SEQUENCE_LENGTH: usize = 32;
 
 pub struct Writer {
@@ -71,10 +69,19 @@ impl Writer {
             return;
         }
 
-        let row = position.y + 1;
-        let col = position.x + 1;
+        let row = Digits::from_u16(position.y as u16 + 1).as_bytes();
+        let col = Digits::from_u16(position.y as u16 + 1).as_bytes();
 
-        write!(self.buffer, "\x1b[{};{}H", row, col).unwrap();
+        #[rustfmt::skip]
+        let sequence: [u8; 14] = [
+            b'\x1b', b'[',
+            row[0], row[1], row[2], row[3], row[4],
+            b';',
+            col[0], col[1], col[2], col[3], col[4],
+            b'H',
+        ];
+
+        self.buffer.extend_from_slice(&sequence);
         self.cursor = Some(position);
     }
 
@@ -84,9 +91,9 @@ impl Writer {
             return;
         }
 
-        let r = Digit3::new(color.r).as_bytes();
-        let g = Digit3::new(color.g).as_bytes();
-        let b = Digit3::new(color.b).as_bytes();
+        let r = Digits::look_u8(color.r).as_bytes();
+        let g = Digits::look_u8(color.g).as_bytes();
+        let b = Digits::look_u8(color.b).as_bytes();
 
         #[rustfmt::skip]
         let sequence: [u8; 19] = [
@@ -107,9 +114,9 @@ impl Writer {
             return;
         }
 
-        let r = Digit3::new(color.r).as_bytes();
-        let g = Digit3::new(color.g).as_bytes();
-        let b = Digit3::new(color.b).as_bytes();
+        let r = Digits::look_u8(color.r).as_bytes();
+        let g = Digits::look_u8(color.g).as_bytes();
+        let b = Digits::look_u8(color.b).as_bytes();
 
         #[rustfmt::skip]
         let sequence: [u8; 19] = [
@@ -127,6 +134,13 @@ impl Writer {
     #[inline]
     pub fn push_glyph_u8(&mut self, glyph: u8) {
         self.buffer.push(glyph);
+        self.bump_cursor();
+    }
+
+    #[inline]
+    pub fn push_glyph_char(&mut self, glyph: char) {
+        let length = self.buffer.len();
+        glyph.encode_utf8(&mut self.buffer[length..]);
         self.bump_cursor();
     }
 

@@ -1,5 +1,5 @@
 pub mod color;
-pub mod digit3;
+pub mod digits;
 pub mod etchel;
 pub mod position;
 pub mod size;

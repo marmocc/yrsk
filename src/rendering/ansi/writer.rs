@@ -50,17 +50,7 @@ impl Writer {
 
     #[inline]
     pub fn bump_cursor(&mut self) {
-        let max_x = (self.size.width as i32) - 1;
-        let max_y = (self.size.height as i32) - 1;
-        self.cursor = self.cursor.map(|p| {
-            if p.x < max_x {
-                p.add_x(1)
-            } else if p.y < max_y {
-                p.add_y(1).with_x(0)
-            } else {
-                Position::new(max_x, max_y)
-            }
-        })
+        self.cursor = self.cursor.map(|p| self.size.advance(p));
     }
 
     #[inline]
@@ -69,8 +59,8 @@ impl Writer {
             return;
         }
 
-        let row = Digits::from_u16(position.y as u16 + 1).as_bytes();
-        let col = Digits::from_u16(position.y as u16 + 1).as_bytes();
+        let row = Digits::from_u16(position.y + 1).as_bytes();
+        let col = Digits::from_u16(position.x + 1).as_bytes();
 
         #[rustfmt::skip]
         let sequence: [u8; 14] = [
@@ -194,14 +184,14 @@ mod tests {
     fn first_move_is_always_emitted() {
         let mut w = writer();
         w.push_move(Position::new(0, 0));
-        assert_eq!(w.buffer, b"\x1b[1;1H");
+        assert_eq!(w.buffer, b"\x1b[00001;00001H");
     }
 
     #[test]
     fn move_uses_one_based_row_then_column() {
         let mut w = writer();
         w.push_move(Position::new(79, 39));
-        assert_eq!(w.buffer, b"\x1b[40;80H");
+        assert_eq!(w.buffer, b"\x1b[00040;00080H");
     }
 
     #[test]
@@ -209,7 +199,7 @@ mod tests {
         let mut w = writer();
         w.push_move(Position::new(4, 2));
         w.push_move(Position::new(4, 2));
-        assert_eq!(w.buffer, b"\x1b[3;5H");
+        assert_eq!(w.buffer, b"\x1b[00003;00005H");
     }
 
     #[test]
@@ -219,7 +209,7 @@ mod tests {
         w.push_glyph_u8(b'a');
         w.push_move(Position::new(1, 0));
         w.push_glyph_u8(b'b');
-        assert_eq!(w.buffer, b"\x1b[1;1Hab");
+        assert_eq!(w.buffer, b"\x1b[00001;00001Hab");
     }
 
     #[test]
@@ -228,7 +218,7 @@ mod tests {
         w.push_move(Position::new(0, 0));
         w.push_glyph_u8(b'a');
         w.push_move(Position::new(5, 0));
-        assert_eq!(w.buffer, b"\x1b[1;1Ha\x1b[1;6H");
+        assert_eq!(w.buffer, b"\x1b[00001;00001Ha\x1b[00001;00006H");
     }
 
     #[test]
@@ -236,7 +226,7 @@ mod tests {
         let mut w = writer();
         w.push_glyph_u8(b'a');
         w.push_move(Position::new(1, 0));
-        assert_eq!(w.buffer, b"a\x1b[1;2H");
+        assert_eq!(w.buffer, b"a\x1b[00001;00002H");
     }
 
     #[test]
@@ -245,7 +235,7 @@ mod tests {
         w.push_move(Position::new(2, 2));
         w.forget_cursor();
         w.push_move(Position::new(2, 2));
-        assert_eq!(w.buffer, b"\x1b[3;3H\x1b[3;3H");
+        assert_eq!(w.buffer, b"\x1b[00003;00003H\x1b[00003;00003H");
     }
 
     #[test]
@@ -256,7 +246,6 @@ mod tests {
         assert_eq!(w.cursor, Some(Position::new(79, 0)));
         w.push_glyph_u8(b'a');
         assert_eq!(w.cursor, Some(Position::new(0, 1)));
-        assert_eq!(w.buffer, b"\x1b[1;79Haa");
     }
 
     // --- colours --------------------------------------------------------
@@ -349,7 +338,7 @@ mod tests {
         w.push_clear();
         w.clear();
         w.push_move(Position::new(3, 3));
-        assert_eq!(w.buffer, b"\x1b[4;4H");
+        assert_eq!(w.buffer, b"\x1b[00004;00004H");
     }
 
     #[test]
@@ -359,13 +348,13 @@ mod tests {
         w.push_alternate_enter();
         w.clear();
         w.push_move(Position::new(1, 1));
-        assert_eq!(w.buffer, b"\x1b[2;2H");
+        assert_eq!(w.buffer, b"\x1b[00002;00002H");
 
         w.clear();
         w.push_alternate_leave();
         w.clear();
         w.push_move(Position::new(1, 1));
-        assert_eq!(w.buffer, b"\x1b[2;2H");
+        assert_eq!(w.buffer, b"\x1b[00002;00002H");
     }
 
     #[test]

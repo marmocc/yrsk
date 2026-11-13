@@ -2,38 +2,38 @@ use std::ops::Add;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Position {
-    pub x: i32,
-    pub y: i32,
+    pub x: u16,
+    pub y: u16,
 }
 
 impl Position {
     #[inline]
-    pub const fn new(x: i32, y: i32) -> Self {
+    pub const fn new(x: u16, y: u16) -> Self {
         Self { x, y }
     }
 
     #[inline]
-    pub fn zero() -> Self {
+    pub const fn zero() -> Self {
         Self { x: 0, y: 0 }
     }
 
     #[inline]
-    pub fn flatten(self, stride: i32) -> i32 {
-        self.y * stride + self.x
+    pub const fn flatten(self, stride: u16) -> u32 {
+        self.y as u32 * stride as u32 + self.x as u32
     }
 
     #[inline]
-    pub fn with_x(self, x: i32) -> Self {
+    pub const fn with_x(self, x: u16) -> Self {
         Self { x, y: self.y }
     }
 
     #[inline]
-    pub fn with_y(self, y: i32) -> Self {
+    pub const fn with_y(self, y: u16) -> Self {
         Self { x: self.x, y }
     }
 
     #[inline]
-    pub fn add_x(self, x: i32) -> Self {
+    pub const fn add_x(self, x: u16) -> Self {
         Self {
             x: x + self.x,
             y: self.y,
@@ -41,7 +41,7 @@ impl Position {
     }
 
     #[inline]
-    pub fn add_y(self, y: i32) -> Self {
+    pub const fn add_y(self, y: u16) -> Self {
         Self {
             x: self.x,
             y: y + self.y,
@@ -57,10 +57,10 @@ impl Add for Position {
     }
 }
 
-impl Add<(i32, i32)> for Position {
+impl Add<(u16, u16)> for Position {
     type Output = Position;
     #[inline]
-    fn add(self, rhs: (i32, i32)) -> Self::Output {
+    fn add(self, rhs: (u16, u16)) -> Self::Output {
         Position::new(self.x + rhs.0, self.y + rhs.1)
     }
 }

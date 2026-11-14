@@ -1,4 +1,4 @@
-use crate::common::{color::Color, position::Position};
+use crate::common::{color::Color, position::Position, size::Size};
 
 pub struct State {
     cursor: Option<Position>,
@@ -32,10 +32,17 @@ impl State {
     }
 
     #[inline]
-    pub fn advance(&mut self) {
-        self.cursor = self
-            .cursor
-            .and_then(|position| position.x.checked_add(1).map(|x| position.with_x(x)));
+    pub fn advance_cursor(&mut self, size: Size) {
+        self.cursor = self.cursor.map(|position| {
+            let max_position = size.last();
+            if position.x < max_position.x {
+                position.add_x(1)
+            } else if position.y < max_position.y {
+                position.add_y(1).with_x(0)
+            } else {
+                max_position
+            }
+        });
     }
 
     #[inline]
@@ -123,43 +130,52 @@ mod tests {
 
     // --- cursor advancement ---------------------------------------------
 
+    fn size() -> Size {
+        Size::try_new(80, 40).unwrap()
+    }
+
     #[test]
-    fn advance_matches_the_next_cell() {
+    fn advance_cursor_matches_the_next_cell() {
         let mut state = State::new();
         let mut emitted = Vec::new();
 
         state.ensure_cursor(Position::new(0, 0), |position| emitted.push(position));
-        state.advance();
+        state.advance_cursor(size());
         state.ensure_cursor(Position::new(1, 0), |position| emitted.push(position));
 
         assert_eq!(emitted, [Position::new(0, 0)]);
     }
 
     #[test]
-    fn advance_stops_at_max_x() {
+    fn advance_cursor_wraps_to_the_next_row() {
         let mut state = State::new();
         let mut emitted = Vec::new();
 
-        state.ensure_cursor(Position::new(u16::MAX, 0), |position| {
-            emitted.push(position)
-        });
-        state.advance();
-        state.ensure_cursor(Position::new(u16::MAX, 0), |position| {
-            emitted.push(position)
-        });
+        state.ensure_cursor(Position::new(79, 0), |position| emitted.push(position));
+        state.advance_cursor(size());
+        state.ensure_cursor(Position::new(0, 1), |position| emitted.push(position));
 
-        assert_eq!(
-            emitted,
-            [Position::new(u16::MAX, 0), Position::new(u16::MAX, 0)]
-        );
+        assert_eq!(emitted, [Position::new(79, 0)]);
     }
 
     #[test]
-    fn advancement_with_unknown_cursor_keeps_it_unknown() {
+    fn advance_cursor_clamps_at_the_last_cell() {
         let mut state = State::new();
         let mut emitted = Vec::new();
 
-        state.advance();
+        state.ensure_cursor(Position::new(79, 39), |position| emitted.push(position));
+        state.advance_cursor(size());
+        state.ensure_cursor(Position::new(79, 39), |position| emitted.push(position));
+
+        assert_eq!(emitted, [Position::new(79, 39)]);
+    }
+
+    #[test]
+    fn advance_cursor_with_unknown_position_stays_unknown() {
+        let mut state = State::new();
+        let mut emitted = Vec::new();
+
+        state.advance_cursor(size());
         state.ensure_cursor(Position::new(0, 0), |position| emitted.push(position));
 
         assert_eq!(emitted, [Position::new(0, 0)]);

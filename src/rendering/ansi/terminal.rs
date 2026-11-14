@@ -73,9 +73,9 @@ impl Renderer for Terminal {
     #[inline]
     fn present(&mut self) -> Result<()> {
         self.output.write_all(self.encoder.written())?;
-        self.size = terminal_size(&self.output)?;
-        self.state.forget_cursor();
         self.encoder.clear();
+        self.state.forget_cursor();
+        self.size = terminal_size(&self.output)?;
         Ok(())
     }
 }

@@ -46,18 +46,6 @@ impl Size {
     pub const fn last(self) -> Position {
         Position::new(self.width.get() - 1, self.height.get() - 1)
     }
-
-    #[inline]
-    pub const fn advance(&self, position: Position) -> Position {
-        let max_position = self.last();
-        if position.x < max_position.x {
-            position.add_x(1)
-        } else if position.y < max_position.y {
-            position.add_y(1).with_x(0)
-        } else {
-            max_position
-        }
-    }
 }
 
 impl TryFrom<(u16, u16)> for Size {
@@ -150,20 +138,5 @@ mod tests {
         let size = Size::try_new(1, 1).unwrap();
 
         assert_eq!(size.last(), Position::new(0, 0));
-        assert_eq!(size.advance(Position::new(0, 0)), Position::new(0, 0));
-    }
-
-    #[test]
-    fn advance_wraps_to_next_row() {
-        let size = Size::try_new(80, 40).unwrap();
-
-        assert_eq!(size.advance(Position::new(79, 0)), Position::new(0, 1));
-    }
-
-    #[test]
-    fn advance_clamps_at_last_position() {
-        let size = Size::try_new(80, 40).unwrap();
-
-        assert_eq!(size.advance(Position::new(79, 39)), Position::new(79, 39));
     }
 }

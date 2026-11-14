@@ -3,16 +3,15 @@ use crate::common::etchel::Etchel;
 use crate::common::position::Position;
 use crate::common::size::Size;
 use crate::rendering::ansi::encoder::Encoder;
-use crate::rendering::ansi::platform::prepare_and_get_stdout;
+use crate::rendering::ansi::platform::{get_raw_stdout, terminal_size};
 use crate::rendering::ansi::state::State;
 use crate::rendering::canvas::Canvas;
 use crate::rendering::renderer::Renderer;
 use std::fs::File;
 use std::io::Write;
 
-const DEFAULT_SIZE: Size = Size::try_new(80, 40).unwrap();
-
 pub struct Terminal {
+    size: Size,
     state: State,
     encoder: Encoder,
     output: File,
@@ -20,10 +19,15 @@ pub struct Terminal {
 
 impl Terminal {
     pub fn new() -> Result<Self> {
-        let output = prepare_and_get_stdout()?;
+        let output = get_raw_stdout()?;
+        let size = terminal_size(&output)?;
+        let encoder = Encoder::new(size.area() as usize * 32);
+        let state = State::new();
+
         let mut terminal = Self {
-            state: State::new(),
-            encoder: Encoder::new(DEFAULT_SIZE),
+            size,
+            state,
+            encoder,
             output,
         };
 
@@ -49,7 +53,7 @@ impl Drop for Terminal {
 impl Canvas for Terminal {
     #[inline]
     fn size(&self) -> Size {
-        DEFAULT_SIZE
+        self.size
     }
 
     #[inline]
@@ -61,7 +65,7 @@ impl Canvas for Terminal {
         state.ensure_foreground(etchel.foreground, |c| encoder.encode_foreground(c));
         state.ensure_background(etchel.background, |c| encoder.encode_background(c));
         encoder.encode_glyph_u8(etchel.glyph);
-        state.advance();
+        state.advance_cursor(self.size);
     }
 }
 
@@ -69,6 +73,8 @@ impl Renderer for Terminal {
     #[inline]
     fn present(&mut self) -> Result<()> {
         self.output.write_all(self.encoder.written())?;
+        self.size = terminal_size(&self.output)?;
+        self.state.forget_cursor();
         self.encoder.clear();
         Ok(())
     }

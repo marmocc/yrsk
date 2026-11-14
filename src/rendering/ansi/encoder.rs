@@ -1,6 +1,4 @@
-use crate::common::{color::Color, digits::Digits, position::Position, size::Size};
-
-const DEFAULT_SEQUENCE_LENGTH: usize = 32;
+use crate::common::{color::Color, digits::Digits, position::Position};
 
 pub struct Encoder {
     buffer: Vec<u8>,
@@ -8,11 +6,9 @@ pub struct Encoder {
 
 impl Encoder {
     #[inline]
-    pub fn new(size: Size) -> Self {
+    pub fn new(capacity: usize) -> Self {
         Self {
-            buffer: Vec::with_capacity(
-                size.width() as usize * size.height() as usize * DEFAULT_SEQUENCE_LENGTH,
-            ),
+            buffer: Vec::with_capacity(capacity),
         }
     }
 
@@ -127,7 +123,7 @@ mod tests {
     use super::*;
 
     fn encoder() -> Encoder {
-        Encoder::new(Size::try_new(80, 40).unwrap())
+        Encoder::new(80 * 40)
     }
 
     // --- cursor ---------------------------------------------------------

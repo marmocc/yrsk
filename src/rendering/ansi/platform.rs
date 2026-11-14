@@ -1,31 +1,10 @@
+use crate::Result;
 use crate::common::size::Size;
-use std::{fs::File, io::Result};
-
-pub fn prepare_and_get_stdout() -> Result<File> {
-    let output = get_raw_stdout()?;
-
-    #[cfg(windows)]
-    enable_virtual_terminal(&output)?;
-
-    Ok(output)
-}
-
-#[cfg(unix)]
-fn get_raw_stdout() -> Result<File> {
-    use std::os::fd::AsFd;
-    let fd = std::io::stdout().as_fd().try_clone_to_owned()?;
-    Ok(std::fs::File::from(fd))
-}
+use std::fs::File;
+use std::io;
 
 #[cfg(windows)]
-fn get_raw_stdout() -> Result<File> {
-    use std::os::windows::io::AsHandle;
-    let handle = std::io::stdout().as_handle().try_clone_to_owned()?;
-    Ok(std::fs::File::from(handle))
-}
-
-#[cfg(windows)]
-fn enable_virtual_terminal(output: &File) -> Result<()> {
+fn enable_virtual_terminal(output: &File) -> io::Result<()> {
     use std::ffi::c_void;
     use std::os::windows::io::AsRawHandle;
 
@@ -57,8 +36,32 @@ fn enable_virtual_terminal(output: &File) -> Result<()> {
     Ok(())
 }
 
+#[cfg(unix)]
+pub fn get_raw_stdout() -> io::Result<File> {
+    use std::os::fd::AsFd;
+    let fd = std::io::stdout().as_fd().try_clone_to_owned()?;
+    Ok(std::fs::File::from(fd))
+}
+
 #[cfg(windows)]
-pub fn terminal_size(output: &File) -> Option<Size> {
+pub fn get_raw_stdout() -> io::Result<File> {
+    use std::os::windows::io::AsHandle;
+    let handle = std::io::stdout().as_handle().try_clone_to_owned()?;
+    let file = std::fs::File::from(handle);
+    enable_virtual_terminal(&file)?;
+    Ok(file)
+}
+
+#[cfg(windows)]
+fn invalid_dimensions() -> io::Error {
+    io::Error::new(
+        io::ErrorKind::InvalidData,
+        "terminal dimensions are outside the supported range",
+    )
+}
+
+#[cfg(windows)]
+pub fn terminal_size(output: &File) -> Result<Size> {
     use std::ffi::c_void;
     use std::os::windows::io::AsRawHandle;
 
@@ -110,13 +113,15 @@ pub fn terminal_size(output: &File) -> Option<Size> {
     let success = unsafe { get_console_screen_buffer_info(output.as_raw_handle(), &mut info) };
 
     if success == 0 {
-        return None;
+        return Err(io::Error::last_os_error().into());
     }
 
     let width = i32::from(info.window.right) - i32::from(info.window.left) + 1;
     let height = i32::from(info.window.bottom) - i32::from(info.window.top) + 1;
+    let width = u16::try_from(width).map_err(|_| invalid_dimensions())?;
+    let height = u16::try_from(height).map_err(|_| invalid_dimensions())?;
 
-    Size::try_new(u16::try_from(width).ok()?, u16::try_from(height).ok()?)
+    Size::try_from((width, height))
 }
 
 #[cfg(any(
@@ -129,7 +134,7 @@ pub fn terminal_size(output: &File) -> Option<Size> {
     target_os = "netbsd",
     target_os = "dragonfly"
 ))]
-fn unix_terminal_size(output: &File, request: std::ffi::c_ulong) -> Option<Size> {
+fn unix_terminal_size(output: &File, request: std::ffi::c_ulong) -> Result<Size> {
     use std::ffi::c_int;
     use std::os::fd::AsRawFd;
 
@@ -156,14 +161,14 @@ fn unix_terminal_size(output: &File, request: std::ffi::c_ulong) -> Option<Size>
     let result = unsafe { ioctl(output.as_raw_fd(), request, &mut window as *mut WinSize) };
 
     if result != 0 {
-        return None;
+        return Err(io::Error::last_os_error().into());
     }
 
-    Size::try_new(window.ws_col, window.ws_row)
+    Size::try_from((window.ws_col, window.ws_row))
 }
 
 #[cfg(any(target_os = "linux", target_os = "android"))]
-pub fn terminal_size(output: &File) -> Option<Size> {
+pub fn terminal_size(output: &File) -> Result<Size> {
     unix_terminal_size(output, 0x5413)
 }
 
@@ -175,7 +180,7 @@ pub fn terminal_size(output: &File) -> Option<Size> {
     target_os = "netbsd",
     target_os = "dragonfly"
 ))]
-pub fn terminal_size(output: &File) -> Option<Size> {
+pub fn terminal_size(output: &File) -> Result<Size> {
     unix_terminal_size(output, 0x4008_7468)
 }
 
@@ -190,6 +195,10 @@ pub fn terminal_size(output: &File) -> Option<Size> {
     target_os = "netbsd",
     target_os = "dragonfly"
 )))]
-pub fn terminal_size(_output: &File) -> Option<Size> {
-    None
+pub fn terminal_size(_output: &File) -> Result<Size> {
+    Err(io::Error::new(
+        io::ErrorKind::Unsupported,
+        "terminal size is not supported on this platform",
+    )
+    .into())
 }

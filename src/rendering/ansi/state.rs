@@ -135,7 +135,7 @@ mod tests {
     }
 
     #[test]
-    fn advance_matches_the_next_cell() {
+    fn advance_cursor_matches_the_next_cell() {
         let mut state = State::new();
         let mut emitted = Vec::new();
 
@@ -147,7 +147,7 @@ mod tests {
     }
 
     #[test]
-    fn advance_wraps_to_the_next_row() {
+    fn advance_cursor_wraps_to_the_next_row() {
         let mut state = State::new();
         let mut emitted = Vec::new();
 
@@ -159,7 +159,7 @@ mod tests {
     }
 
     #[test]
-    fn advance_clamps_at_the_last_cell() {
+    fn advance_cursor_clamps_at_the_last_cell() {
         let mut state = State::new();
         let mut emitted = Vec::new();
 
@@ -171,7 +171,7 @@ mod tests {
     }
 
     #[test]
-    fn advancement_with_unknown_cursor_keeps_it_unknown() {
+    fn advance_cursor_with_unknown_position_stays_unknown() {
         let mut state = State::new();
         let mut emitted = Vec::new();
 

@@ -37,14 +37,14 @@ fn enable_virtual_terminal(output: &File) -> io::Result<()> {
 }
 
 #[cfg(unix)]
-pub fn get_raw_stdout() -> io::Result<File> {
+pub fn raw_stdout() -> io::Result<File> {
     use std::os::fd::AsFd;
     let fd = std::io::stdout().as_fd().try_clone_to_owned()?;
     Ok(std::fs::File::from(fd))
 }
 
 #[cfg(windows)]
-pub fn get_raw_stdout() -> io::Result<File> {
+pub fn raw_stdout() -> io::Result<File> {
     use std::os::windows::io::AsHandle;
     let handle = std::io::stdout().as_handle().try_clone_to_owned()?;
     let file = std::fs::File::from(handle);

@@ -3,7 +3,7 @@ use crate::common::etchel::Etchel;
 use crate::common::position::Position;
 use crate::common::size::Size;
 use crate::rendering::ansi::encoder::Encoder;
-use crate::rendering::ansi::platform::{get_raw_stdout, terminal_size};
+use crate::rendering::ansi::platform::{raw_stdout, terminal_size};
 use crate::rendering::ansi::state::State;
 use crate::rendering::canvas::Canvas;
 use crate::rendering::renderer::Renderer;
@@ -19,7 +19,7 @@ pub struct Terminal {
 
 impl Terminal {
     pub fn new() -> Result<Self> {
-        let output = get_raw_stdout()?;
+        let output = raw_stdout()?;
         let size = terminal_size(&output)?;
         let encoder = Encoder::new(size.area() as usize * 32);
         let state = State::new();

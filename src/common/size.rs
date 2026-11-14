@@ -134,7 +134,7 @@ mod tests {
     }
 
     #[test]
-    fn one_by_one_does_not_underflow() {
+    fn one_by_one_last_does_not_underflow() {
         let size = Size::try_new(1, 1).unwrap();
 
         assert_eq!(size.last(), Position::new(0, 0));
